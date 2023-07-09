@@ -1,0 +1,6 @@
+click
+emoji
+unicode
+transformers
+pillow
+torch
