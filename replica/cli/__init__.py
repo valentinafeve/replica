@@ -1,5 +1,6 @@
 import click
 from replica.chat.signal import SignalChat
+from replica.captioner import caption_files_in_folder
 import json
 
 
@@ -13,18 +14,19 @@ messaging_apps = {
 }
 
 
-def generate_jsonl_file(messages, file_path="messages.jsonl"):
+def generate_prompt_completions_file(messages, file_path="messages.jsonl"):
     with open(file_path, "w") as f:
         for i, message in enumerate(messages):
             if i < 1:
                 continue
             input_prompt = ""
-            # for j in range(5, 0, -1):
             message_index = i - 1
-            input_prompt += '##' + messages[message_index]["from"] + '##' + ": " + '. '.join(messages[message_index]["text"])
+            message_date_past = messages[message_index]["datetime"].strftime('%d-%m-%Y %H:%M:%S')
+            message_date_current = messages[i]["datetime"].strftime('%d-%m-%Y %H:%M:%S')
+            input_prompt += '##' + messages[message_index]["from"] + ' at ' + message_date_past + '##' + ": " + '. '.join(messages[message_index]["text"])
             input_prompt += '. '
 
-            input_prompt += '##' + messages[i]["from"] + '##'
+            input_prompt += '##' + messages[i]["from"] + ' at ' + message_date_current + '##' + ": "
             input_prompt += ": "
             prompt_response = {
                 "prompt": input_prompt,
@@ -36,11 +38,18 @@ def generate_jsonl_file(messages, file_path="messages.jsonl"):
 @cli.command()
 @click.option('--file-path', default='messages.txt', help='')
 @click.option('--messaging-app', default='', help='')
-@click.option('--you', default='', help="Name of the person owner of the chat. Replica will replace the messages coming from 'you' with this name")
-def prepare_messages(file_path, messaging_app, you):
+def prepare_messages(file_path, messaging_app):
     chat = messaging_apps[messaging_app]()
-    chat.prepare_messages(file_path, you)
-    generate_jsonl_file(chat.messages, "messages.jsonl")
+    chat.read_messages(file_path)
+    generate_prompt_completions_file(chat.messages, "messages.jsonl")
+
+
+@cli.command()
+@click.option('--folder-path', default='attachments', help='')
+def caption_messages(folder_path):
+    captionings = caption_files_in_folder(folder_path)
+    f = open('captionings.json', 'w')
+    json.dump(captionings, f)
 
 
 if __name__ == '__main__':

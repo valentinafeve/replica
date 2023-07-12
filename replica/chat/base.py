@@ -1,6 +1,11 @@
+import emoji
+import re
+import logging
+
+
 class ChatBase:
     def __init__(self):
         self.messages = []
 
-    def prepare_messages(self, file_path: str):
+    def read_messages(self, file_path: str):
         pass
