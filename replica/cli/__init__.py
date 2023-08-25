@@ -1,6 +1,8 @@
 import click
+from replica.chat.base import ChatBase
 from replica.chat.signal import SignalChat
 from replica.captioner import caption_files_in_folder
+from replica.transcriptor import transcribe_files_in_folder
 import json
 
 
@@ -38,9 +40,12 @@ def generate_prompt_completions_file(messages, file_path="messages.jsonl"):
 @cli.command()
 @click.option('--file-path', default='messages.txt', help='')
 @click.option('--messaging-app', default='', help='')
-def prepare_messages(file_path, messaging_app):
-    chat = messaging_apps[messaging_app]()
+@click.option('--captionings-path', default='captionings.json', help='')
+def prepare_messages(file_path, messaging_app, captionings_path):
+    chat: ChatBase = messaging_apps[messaging_app]()
     chat.read_messages(file_path)
+    chat.replace_text_with_captionings(captionings_path)
+    chat.replace_text_with_transcriptions(captionings_path)
     generate_prompt_completions_file(chat.messages, "messages.jsonl")
 
 
@@ -50,6 +55,14 @@ def caption_messages(folder_path):
     captionings = caption_files_in_folder(folder_path)
     f = open('captionings.json', 'w')
     json.dump(captionings, f)
+
+
+@cli.command()
+@click.option('--folder-path', default='attachments', help='')
+def transcribe_messages(folder_path):
+    transcriptions = transcribe_files_in_folder(folder_path)
+    f = open('transcriptions.json', 'w')
+    json.dump(transcriptions, f)
 
 
 if __name__ == '__main__':

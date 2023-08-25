@@ -1,4 +1,5 @@
 import os
+
 from tqdm import tqdm
 from transformers import pipeline
 
@@ -14,10 +15,7 @@ def caption_image(image_path: str):
 
 def caption_files_in_folder(directory: str):
     captionings = {}
-    cont = 0
     for filename in tqdm(os.listdir(directory)):
-        if cont > 20:
-            break
         if os.path.isfile(os.path.join(directory, filename)):
             if filename.endswith('jpg') or filename.endswith('jpeg') or filename.endswith('png'):
                 captionings[filename] = caption_image(os.path.join(directory, filename))
@@ -25,5 +23,4 @@ def caption_files_in_folder(directory: str):
                 image = extract_middle_frame(filename)
                 if image:
                     captionings[filename] = caption_image(image)
-        cont += 1
     return captionings

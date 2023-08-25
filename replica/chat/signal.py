@@ -1,6 +1,9 @@
+import json
 from datetime import datetime
 
 from unidecode import unidecode
+import os
+from collections import OrderedDict
 
 from replica.chat.base import ChatBase
 from replica.chat.utils import replace_words_in_message, emojize, remove_urls
@@ -10,6 +13,79 @@ from typing import List, Dict
 class SignalChat(ChatBase):
     def __init__(self):
         self.messages = []
+
+    def replace_text_with_captionings(self, captionings_path: str):
+        files_without_name_i = 0
+        attachments_read = []
+        captionings = json.load(open(captionings_path, "r"))
+        for message_i, message in enumerate(self.messages):
+
+            for i, text in enumerate(message['text']):
+                if 'Attachment' in text:
+                    attachment_name = text.split('(')[0].replace('Attachment: ', '').strip()
+                    attachment_type = text.split('(')[1].split(')')[0].split(',')[0].strip()
+
+                    captioning_text_type = ''
+
+                    if attachment_type == 'image/jpeg':
+                        captioning_text_type = 'Image of'
+                    elif attachment_type == 'video/mp4':
+                        captioning_text_type = 'Video of'
+
+                    if attachment_name == 'no filename':
+                        unnamed_attachment_name = f'attachment-{message["datetime"].strftime("%Y")}-{message["datetime"].strftime("%m")}-{message["datetime"].strftime("%d")}-{message["datetime"].strftime("%H")}-{message["datetime"].strftime("%M")}'
+                        captionings_filtered = {k: v for k, v in captionings.items() if k.startswith(unnamed_attachment_name)}
+                        captionings_filtered = OrderedDict(sorted(captionings_filtered.items()))
+
+                        image_was_captioned = False
+                        for k, v in captionings_filtered.items():
+                            if k not in attachments_read:
+                                self.messages[message_i]['text'][i] = self.messages[message_i]['text'][i].replace('no filename', f'{captioning_text_type} {v}')
+                                attachments_read.append(k)
+                                image_was_captioned = True
+                        if not image_was_captioned:
+                            print(unnamed_attachment_name)
+                    else:
+                        self.messages[message_i]['text'][i] = captionings[attachment_name]
+        return self.messages
+
+    def replace_text_with_transcriptions(self, transcriptions_path):
+        files_without_name_i = 0
+        attachments_read = []
+        captionings = json.load(open(transcriptions_path, "r"))
+        for message_i, message in enumerate(self.messages):
+
+            for i, text in enumerate(message['text']):
+                if 'Attachment' in text:
+                    attachment_name = text.split('(')[0].replace('Attachment: ', '').strip()
+                    attachment_type = text.split('(')[1].split(')')[0].split(',')[0].strip()
+
+                    captioning_text_type = ''
+
+                    if attachment_type == 'image/jpeg':
+                        captioning_text_type = 'Image of'
+                    elif attachment_type == 'video/mp4':
+                        captioning_text_type = 'Video of'
+                    else:
+                        print(attachment_type)
+
+
+                    if attachment_name == 'no filename':
+                        unnamed_attachment_name = f'attachment-{message["datetime"].strftime("%Y")}-{message["datetime"].strftime("%m")}-{message["datetime"].strftime("%d")}-{message["datetime"].strftime("%H")}-{message["datetime"].strftime("%M")}'
+                        captionings_filtered = {k: v for k, v in captionings.items() if k.startswith(unnamed_attachment_name)}
+                        captionings_filtered = OrderedDict(sorted(captionings_filtered.items()))
+
+                        image_was_captioned = False
+                        for k, v in captionings_filtered.items():
+                            if k not in attachments_read:
+                                self.messages[message_i]['text'][i] = self.messages[message_i]['text'][i].replace('no filename', f'{captioning_text_type} {v}')
+                                attachments_read.append(k)
+                                image_was_captioned = True
+                        if not image_was_captioned:
+                            print(unnamed_attachment_name)
+                    else:
+                        self.messages[message_i]['text'][i] = captionings[attachment_name]
+        return self.messages
 
     def read_messages(self, file_path: str) -> List[Dict]:
         """
