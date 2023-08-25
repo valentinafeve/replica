@@ -1,0 +1,7 @@
+click
+emoji
+unicode
+transformers
+pillow
+opencv-python
+torch
